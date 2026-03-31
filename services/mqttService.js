@@ -153,7 +153,7 @@ const handleMasuk = async (payload) => {
     if (mqttClientInstance && mqttClientInstance.connected) {
       mqttClientInstance.publish(
         TOPIC_MSG_MASUK,
-        JSON.stringify({ message: `Selamat datang, ${kendaraan.nama_pemilik}` }),
+        JSON.stringify({ message: `${kendaraan.nama_pemilik}` }),
         { qos: 1 },
         (err) => {
           if (err) console.error('[MQTT Masuk] Gagal publish message masuk:', err.message);
@@ -232,7 +232,7 @@ const handleKeluar = async (payload) => {
     if (mqttClientInstance && mqttClientInstance.connected) {
       mqttClientInstance.publish(
         TOPIC_MSG_KELUAR,
-        JSON.stringify({ message: `Selamat jalan, ${transaksi.nama}` }),
+        JSON.stringify({ message: `${transaksi.nama}` }),
         { qos: 1 },
         (err) => {
           if (err) console.error('[MQTT Keluar] Gagal publish message keluar:', err.message);
