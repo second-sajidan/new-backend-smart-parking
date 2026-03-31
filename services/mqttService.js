@@ -14,8 +14,10 @@ const TOPIC_MASUK          = 'petugas/dashboard/masuk';
 const TOPIC_KELUAR         = 'petugas/dashboard/keluar';
 const TOPIC_DAFTAR         = 'petugas/dashboard/daftar';
 const TOPIC_UID            = 'petugas/dashboard/rfid';
-const TOPIC_PALANG_MASUK   = 'petugas/dashboard/palang/masuk';   // buka/tutup palang masuk
-const TOPIC_PALANG_KELUAR  = 'petugas/dashboard/palang/keluar';  // buka/tutup palang keluar
+const TOPIC_PALANG_MASUK   = 'petugas/dashboard/palang/masuk';
+const TOPIC_PALANG_KELUAR  = 'petugas/dashboard/palang/keluar';
+const TOPIC_MSG_MASUK      = 'petugas/dashboard/masuk/message';
+const TOPIC_MSG_KELUAR     = 'petugas/dashboard/keluar/message';
 
 const toMysqlDatetime = (isoString) => {
   if (!isoString || isoString === '-') return null;
@@ -147,10 +149,23 @@ const handleMasuk = async (payload) => {
 
     console.log(`[MQTT Masuk] ✓ INSERT ${kendaraan.plat_nomor} | ${kendaraan.nama_pemilik} | Tipe: ${kendaraan.tipe_kendaraan} | Area: ${area}`);
 
-    // 4. Publish buka palang masuk
+    // 4. Publish pesan selamat datang
+    if (mqttClientInstance && mqttClientInstance.connected) {
+      mqttClientInstance.publish(
+        TOPIC_MSG_MASUK,
+        JSON.stringify({ message: `Selamat datang, ${kendaraan.nama_pemilik}` }),
+        { qos: 1 },
+        (err) => {
+          if (err) console.error('[MQTT Masuk] Gagal publish message masuk:', err.message);
+          else     console.log(`[MQTT Masuk] Message terkirim → Selamat datang, ${kendaraan.nama_pemilik}`);
+        }
+      );
+    }
+
+    // 5. Publish buka palang masuk
     publishPalangMasukBuka();
 
-    // 5. Auto tutup palang masuk setelah 5 detik
+    // 6. Auto tutup palang masuk setelah 5 detik
     setTimeout(() => {
       publishPalangMasukTutup();
     }, 5000);
@@ -212,6 +227,20 @@ const handleKeluar = async (payload) => {
     };
 
     console.log(`[MQTT Keluar] ✓ Pending: ${transaksi.plat_nomor} | Durasi: ${durasi} jam | Total: Rp ${totalBayar.toLocaleString('id-ID')}`);
+
+    // Publish pesan selamat jalan
+    if (mqttClientInstance && mqttClientInstance.connected) {
+      mqttClientInstance.publish(
+        TOPIC_MSG_KELUAR,
+        JSON.stringify({ message: `Selamat jalan, ${transaksi.nama}` }),
+        { qos: 1 },
+        (err) => {
+          if (err) console.error('[MQTT Keluar] Gagal publish message keluar:', err.message);
+          else     console.log(`[MQTT Keluar] Message terkirim → Selamat jalan, ${transaksi.nama}`);
+        }
+      );
+    }
+
   } catch (err) {
     console.error('[MQTT Keluar] Error:', err.message);
   }
