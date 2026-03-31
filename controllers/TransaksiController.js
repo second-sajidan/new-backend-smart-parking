@@ -49,13 +49,13 @@
 // };
 
 // // GET /api/transaksi/aktif/terbaru
+// // Hanya ambil transaksi yang belum keluar (waktu_keluar IS NULL)
 // const getTransaksiAktif = async (req, res) => {
 //   try {
 //     const [rows] = await pool.query(
 //       `SELECT * FROM tb_transaksi
-//        ORDER BY 
-//          CASE WHEN waktu_keluar IS NULL THEN 0 ELSE 1 END ASC,
-//          waktu_masuk DESC
+//        WHERE waktu_keluar IS NULL
+//        ORDER BY waktu_masuk DESC
 //        LIMIT 1`
 //     );
 
@@ -152,7 +152,6 @@
 // };
 
 // // PUT /api/transaksi/konfirmasi/:id_card
-// // Body: { id_user } — id petugas yang sedang login
 // const konfirmasiBayar = async (req, res) => {
 //   const { getPendingKeluar, clearPendingKeluar } = require('../services/mqttService');
 //   const pending = getPendingKeluar();
@@ -166,7 +165,6 @@
 //   }
 
 //   try {
-//     // Ambil id_user dari body (dikirim frontend dari user yang login)
 //     const id_user = req.body?.id_user ?? null;
 
 //     await pool.query(
@@ -360,7 +358,13 @@ const getPendingKeluarAPI = (req, res) => {
 
 // PUT /api/transaksi/konfirmasi/:id_card
 const konfirmasiBayar = async (req, res) => {
-  const { getPendingKeluar, clearPendingKeluar } = require('../services/mqttService');
+  const {
+    getPendingKeluar,
+    clearPendingKeluar,
+    publishPalangKeluarBuka,
+    publishPalangKeluarTutup,
+  } = require('../services/mqttService');
+
   const pending = getPendingKeluar();
   const data    = pending[req.params.id_card];
 
@@ -388,6 +392,16 @@ const konfirmasiBayar = async (req, res) => {
     );
 
     clearPendingKeluar(req.params.id_card);
+
+    // Publish buka palang keluar setelah konfirmasi bayar
+    publishPalangKeluarBuka();
+    console.log('[Konfirmasi] Palang keluar dibuka');
+
+    // Auto tutup palang keluar setelah 5 detik
+    setTimeout(() => {
+      publishPalangKeluarTutup();
+      console.log('[Konfirmasi] Palang keluar ditutup otomatis (5 detik)');
+    }, 5000);
 
     res.json({
       success: true,

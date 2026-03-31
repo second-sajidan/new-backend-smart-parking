@@ -10,12 +10,12 @@ const OPTIONS = {
   reconnectPeriod: 5000,
 };
 
-const TOPIC_MASUK        = 'petugas/dashboard/masuk';
-const TOPIC_KELUAR       = 'petugas/dashboard/keluar';
-const TOPIC_DAFTAR       = 'petugas/dashboard/daftar';
-const TOPIC_UID          = 'petugas/dashboard/rfid';
-const TOPIC_PALANG_BUKA  = 'petugas/dashboard/palang/buka';
-const TOPIC_PALANG_TUTUP = 'petugas/dashboard/palang/tutup';
+const TOPIC_MASUK          = 'petugas/dashboard/masuk';
+const TOPIC_KELUAR         = 'petugas/dashboard/keluar';
+const TOPIC_DAFTAR         = 'petugas/dashboard/daftar';
+const TOPIC_UID            = 'petugas/dashboard/rfid';
+const TOPIC_PALANG_MASUK   = 'petugas/dashboard/palang/masuk';   // buka/tutup palang masuk
+const TOPIC_PALANG_KELUAR  = 'petugas/dashboard/palang/keluar';  // buka/tutup palang keluar
 
 const toMysqlDatetime = (isoString) => {
   if (!isoString || isoString === '-') return null;
@@ -41,29 +41,56 @@ const clearPendingUID = () => { pendingUID = null; };
 // ── MQTT client instance ──────────────────────────────────────────
 let mqttClientInstance = null;
 
-// ── Helper publish palang ─────────────────────────────────────────
-const publishPalangBuka = (label = '') => {
+// ── Helper publish palang masuk ───────────────────────────────────
+const publishPalangMasukBuka = () => {
   if (!mqttClientInstance || !mqttClientInstance.connected) return;
   mqttClientInstance.publish(
-    TOPIC_PALANG_BUKA,
+    TOPIC_PALANG_MASUK,
     JSON.stringify({ buka: 1 }),
     { qos: 1 },
     (err) => {
-      if (err) console.error(`[MQTT] Gagal publish buka palang ${label}:`, err.message);
-      else     console.log(`[MQTT] Palang ${label} dibuka`);
+      if (err) console.error('[MQTT] Gagal publish buka palang masuk:', err.message);
+      else     console.log('[MQTT] Palang masuk dibuka');
     }
   );
 };
 
-const publishPalangTutup = (label = '') => {
+const publishPalangMasukTutup = () => {
   if (!mqttClientInstance || !mqttClientInstance.connected) return;
   mqttClientInstance.publish(
-    TOPIC_PALANG_TUTUP,
+    TOPIC_PALANG_MASUK,
     JSON.stringify({ tutup: 1 }),
     { qos: 1 },
     (err) => {
-      if (err) console.error(`[MQTT] Gagal publish tutup palang ${label}:`, err.message);
-      else     console.log(`[MQTT] Palang ${label} ditutup`);
+      if (err) console.error('[MQTT] Gagal publish tutup palang masuk:', err.message);
+      else     console.log('[MQTT] Palang masuk ditutup');
+    }
+  );
+};
+
+// ── Helper publish palang keluar ──────────────────────────────────
+const publishPalangKeluarBuka = () => {
+  if (!mqttClientInstance || !mqttClientInstance.connected) return;
+  mqttClientInstance.publish(
+    TOPIC_PALANG_KELUAR,
+    JSON.stringify({ buka: 1 }),
+    { qos: 1 },
+    (err) => {
+      if (err) console.error('[MQTT] Gagal publish buka palang keluar:', err.message);
+      else     console.log('[MQTT] Palang keluar dibuka');
+    }
+  );
+};
+
+const publishPalangKeluarTutup = () => {
+  if (!mqttClientInstance || !mqttClientInstance.connected) return;
+  mqttClientInstance.publish(
+    TOPIC_PALANG_KELUAR,
+    JSON.stringify({ tutup: 1 }),
+    { qos: 1 },
+    (err) => {
+      if (err) console.error('[MQTT] Gagal publish tutup palang keluar:', err.message);
+      else     console.log('[MQTT] Palang keluar ditutup');
     }
   );
 };
@@ -121,11 +148,11 @@ const handleMasuk = async (payload) => {
     console.log(`[MQTT Masuk] ✓ INSERT ${kendaraan.plat_nomor} | ${kendaraan.nama_pemilik} | Tipe: ${kendaraan.tipe_kendaraan} | Area: ${area}`);
 
     // 4. Publish buka palang masuk
-    publishPalangBuka('masuk');
+    publishPalangMasukBuka();
 
     // 5. Auto tutup palang masuk setelah 5 detik
     setTimeout(() => {
-      publishPalangTutup('masuk (auto 5 detik)');
+      publishPalangMasukTutup();
     }, 5000);
 
   } catch (err) {
@@ -254,7 +281,9 @@ const startMqttService = () => {
 
 module.exports = {
   startMqttService,
-  getPendingKeluar, clearPendingKeluar,
-  getPendingUID,    clearPendingUID,
+  getPendingKeluar,      clearPendingKeluar,
+  getPendingUID,         clearPendingUID,
   triggerModeDaftar,
+  publishPalangMasukBuka,  publishPalangMasukTutup,
+  publishPalangKeluarBuka, publishPalangKeluarTutup,
 };
