@@ -232,11 +232,15 @@ const handleKeluar = async (payload) => {
     if (mqttClientInstance && mqttClientInstance.connected) {
       mqttClientInstance.publish(
         TOPIC_MSG_KELUAR,
-        JSON.stringify({ message: `${transaksi.nama}` }),
+        JSON.stringify({ 
+          message: `${transaksi.nama}`,
+          total_bayar: totalBayar,
+          durasi: durasi,
+        }),
         { qos: 1 },
         (err) => {
           if (err) console.error('[MQTT Keluar] Gagal publish message keluar:', err.message);
-          else     console.log(`[MQTT Keluar] Message terkirim → Selamat jalan, ${transaksi.nama}`);
+          else     console.log(`[MQTT Keluar] Message terkirim → Selamat jalan, ${transaksi.nama} | Total: Rp ${totalBayar.toLocaleString('id-ID')}`);
         }
       );
     }
